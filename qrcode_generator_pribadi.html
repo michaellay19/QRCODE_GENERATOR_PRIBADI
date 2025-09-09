@@ -28,6 +28,11 @@
             text-align: center;
             position: relative;
         }
+        .auth-status-container {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+        }
         .user-id-display {
             position: absolute;
             top: 1.5rem;
@@ -62,7 +67,7 @@
             flex-direction: column;
             gap: 1rem;
         }
-        input[type="text"] {
+        input[type="text"], input[type="email"], input[type="password"] {
             width: 100%;
             padding: 0.75rem;
             border: 2px solid #e2e8f0;
@@ -70,7 +75,7 @@
             transition: all 0.3s ease-in-out;
             outline: none;
         }
-        input[type="text"]:focus {
+        input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
@@ -208,12 +213,28 @@
             cursor: pointer;
             color: #4b5563;
         }
+        .auth-switch-btn {
+            background: none;
+            color: #3b82f6;
+            font-weight: 600;
+            padding: 0;
+            box-shadow: none;
+            margin-top: 0.5rem;
+            transition: color 0.3s ease;
+        }
+        .auth-switch-btn:hover {
+            background: none;
+            color: #2563eb;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
     <div class="container">
         <div id="userIdDisplay" class="user-id-display"></div>
+        <div class="auth-status-container">
+            <button id="authBtn" class="bg-blue-500 text-white rounded-lg px-4 py-2 font-semibold">Login</button>
+        </div>
         
         <h1 class="text-3xl font-bold mb-6 text-gray-900">Aplikasi QR Code</h1>
         <div class="nav-tabs">
@@ -246,6 +267,7 @@
         <div id="messageBox" class="message-box hidden"></div>
     </div>
 
+    <!-- QR Code Modal -->
     <div id="qrModal" class="modal hidden">
         <div class="modal-content">
             <span class="modal-close-btn">&times;</span>
@@ -254,18 +276,41 @@
         </div>
     </div>
 
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close-btn">&times;</span>
+            <h3 id="authTitle" class="text-2xl font-bold mb-4">Login</h3>
+            <div class="input-group mb-4">
+                <input type="email" id="authEmail" placeholder="Email" class="text-gray-800">
+                <input type="password" id="authPassword" placeholder="Password" class="text-gray-800">
+            </div>
+            <button id="authSubmitBtn" class="w-full mb-2">Login</button>
+            <button id="authSwitchBtn" class="auth-switch-btn w-full">Belum punya akun? Daftar</button>
+            <div id="authMessage" class="message-box hidden"></div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, serverTimestamp, query, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const qrcodejs = window.QRCode;
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const firebaseConfig = {
+            apiKey: "AIzaSyDBkmEqd-j3luoNHEe1c6KfoEc8DXP4fQY",
+            authDomain: "qrcode-app-88239.firebaseapp.com",
+            projectId: "qrcode-app-88239",
+            storageBucket: "qrcode-app-88239.firebasestorage.app",
+            messagingSenderId: "621280458931",
+            appId: "1:621280458931:web:ff9ae99e910979fd21d8c6"
+        };
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         let app, auth, db;
         let userId = null;
         let unsubscribeFromSnapshot = null;
+        let isLoginMode = true;
 
         const qrGeneratorBtn = document.getElementById('qrGeneratorBtn');
         const savedLinksBtn = document.getElementById('savedLinksBtn');
@@ -283,7 +328,17 @@
         const loadingIndicator = document.getElementById('loadingIndicator');
         const qrModal = document.getElementById('qrModal');
         const modalQrCode = document.getElementById('modal-qrcode');
-        const modalCloseBtn = document.querySelector('.modal-close-btn');
+        const qrModalCloseBtn = document.querySelector('#qrModal .modal-close-btn');
+
+        const authBtn = document.getElementById('authBtn');
+        const authModal = document.getElementById('authModal');
+        const authTitle = document.getElementById('authTitle');
+        const authEmailInput = document.getElementById('authEmail');
+        const authPasswordInput = document.getElementById('authPassword');
+        const authSubmitBtn = document.getElementById('authSubmitBtn');
+        const authSwitchBtn = document.getElementById('authSwitchBtn');
+        const authMessage = document.getElementById('authMessage');
+        const authModalCloseBtn = document.querySelector('#authModal .modal-close-btn');
 
         function showMessage(message, type = 'error') {
             messageBox.textContent = message;
@@ -298,6 +353,23 @@
             setTimeout(() => {
                 messageBox.classList.add('hidden');
             }, 5000);
+        }
+
+        function showAuthMessage(message, type = 'error') {
+            authMessage.textContent = message;
+            authMessage.classList.remove('hidden');
+            if (type === 'error') {
+                authMessage.classList.remove('bg-green-100', 'text-green-800');
+                authMessage.classList.add('bg-red-200', 'text-red-800');
+            } else {
+                authMessage.classList.remove('bg-red-200', 'text-red-800');
+                authMessage.classList.add('bg-green-100', 'text-green-800');
+            }
+        }
+
+        function clearAuthMessage() {
+            authMessage.classList.add('hidden');
+            authMessage.textContent = '';
         }
 
         function showQrGenerator() {
@@ -455,7 +527,7 @@
             }
         }
 
-        modalCloseBtn.addEventListener('click', () => {
+        qrModalCloseBtn.addEventListener('click', () => {
             qrModal.classList.add('hidden');
         });
 
@@ -475,6 +547,7 @@
             }
         }
         
+        // --- Otentikasi & Inisialisasi Firebase ---
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
@@ -483,14 +556,17 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     userId = user.uid;
-                    userIdDisplay.textContent = `ID Pengguna: ${userId}`;
+                    // Tampilkan ID pengguna dan perbarui tombol otentikasi
+                    userIdDisplay.textContent = `ID Pengguna: ${user.isAnonymous ? 'Anonim' : 'Email'} - ${userId}`;
+                    if (!user.isAnonymous) {
+                        authBtn.textContent = 'Logout';
+                    } else {
+                        authBtn.textContent = 'Login';
+                    }
                 } else {
+                    // Jika tidak ada pengguna yang login, otomatis login secara anonim
                     try {
-                        if (typeof __initial_auth_token !== 'undefined') {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
+                        await signInAnonymously(auth);
                     } catch (error) {
                         console.error("Authentication failed:", error);
                         showMessage(`Gagal otentikasi: ${error.message}. Silakan coba muat ulang halaman.`, 'error');
@@ -502,6 +578,76 @@
             showMessage('Terjadi kesalahan saat memuat aplikasi. Silakan coba muat ulang halaman atau hubungi dukungan.', 'error');
         }
 
+        // --- Fungsi Auth Modal ---
+        authBtn.addEventListener('click', () => {
+            if (auth.currentUser && !auth.currentUser.isAnonymous) {
+                // Jika pengguna sudah login dengan email, lakukan logout
+                signOut(auth).then(() => {
+                    showMessage('Berhasil logout!', 'success');
+                }).catch((error) => {
+                    console.error("Logout failed:", error);
+                    showMessage('Gagal logout. Silakan coba lagi.', 'error');
+                });
+            } else {
+                // Buka modal login/daftar
+                authModal.classList.remove('hidden');
+                clearAuthMessage();
+            }
+        });
+
+        authModalCloseBtn.addEventListener('click', () => {
+            authModal.classList.add('hidden');
+        });
+
+        authSwitchBtn.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            authTitle.textContent = isLoginMode ? 'Login' : 'Daftar';
+            authSubmitBtn.textContent = isLoginMode ? 'Login' : 'Daftar';
+            authSwitchBtn.textContent = isLoginMode ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Login';
+            clearAuthMessage();
+        });
+
+        authSubmitBtn.addEventListener('click', async () => {
+            const email = authEmailInput.value.trim();
+            const password = authPasswordInput.value.trim();
+
+            if (!email || !password) {
+                showAuthMessage('Email dan password tidak boleh kosong.');
+                return;
+            }
+
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    showMessage('Login berhasil!', 'success');
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    showMessage('Pendaftaran berhasil! Anda sekarang sudah login.', 'success');
+                }
+                authModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Auth error:", error);
+                // Menampilkan pesan kesalahan yang lebih mudah dipahami
+                let errorMessage = 'Terjadi kesalahan. Silakan coba lagi.';
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                    case 'auth/wrong-password':
+                        errorMessage = 'Email atau password salah.';
+                        break;
+                    case 'auth/email-already-in-use':
+                        errorMessage = 'Email ini sudah terdaftar. Silakan login.';
+                        break;
+                    case 'auth/weak-password':
+                        errorMessage = 'Password harus lebih dari 6 karakter.';
+                        break;
+                    default:
+                        errorMessage = `Error: ${error.message}`;
+                }
+                showAuthMessage(errorMessage);
+            }
+        });
+        
+        // --- Event Listeners untuk UI Utama ---
         qrGeneratorBtn.addEventListener('click', showQrGenerator);
         savedLinksBtn.addEventListener('click', showSavedLinks);
         
