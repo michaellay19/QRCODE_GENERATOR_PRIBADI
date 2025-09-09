@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Terpadu</title>
+    <title>Aplikasi QR Code</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
@@ -120,6 +120,12 @@
         .save-btn:hover {
             background-color: #059669;
         }
+        .download-btn {
+            background-color: #10b981;
+        }
+        .download-btn:hover {
+            background-color: #059669;
+        }
         #links-list {
             list-style: none;
             padding: 0;
@@ -207,7 +213,6 @@
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
     <div class="container">
-        <!-- Menampilkan ID Pengguna -->
         <div id="userIdDisplay" class="user-id-display"></div>
         
         <h1 class="text-3xl font-bold mb-6 text-gray-900">Aplikasi QR Code</h1>
@@ -225,8 +230,10 @@
 
             <div id="qrcode-container" class="hidden">
                 <div id="qrcode"></div>
-                <button id="downloadBtn" class="w-full">Unduh QR Code</button>
-                <button id="saveBtn" class="w-full save-btn">Simpan Tautan</button>
+                <div class="flex gap-2 mt-4 w-full">
+                    <button id="saveBtn" class="w-1/2 save-btn">Simpan Tautan</button>
+                    <button id="downloadBtn" class="w-1/2 download-btn">Unduh QR Code</button>
+                </div>
             </div>
         </div>
 
@@ -239,7 +246,6 @@
         <div id="messageBox" class="message-box hidden"></div>
     </div>
 
-    <!-- Modal untuk menampilkan QR Code -->
     <div id="qrModal" class="modal hidden">
         <div class="modal-content">
             <span class="modal-close-btn">&times;</span>
@@ -249,15 +255,11 @@
     </div>
 
     <script type="module">
-        // Firebase imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, serverTimestamp, query, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // QR Code Library
         const qrcodejs = window.QRCode;
-
-        // Firebase configuration
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -265,7 +267,6 @@
         let userId = null;
         let unsubscribeFromSnapshot = null;
 
-        // DOM elements
         const qrGeneratorBtn = document.getElementById('qrGeneratorBtn');
         const savedLinksBtn = document.getElementById('savedLinksBtn');
         const qrGeneratorView = document.getElementById('qrGeneratorView');
@@ -284,7 +285,6 @@
         const modalQrCode = document.getElementById('modal-qrcode');
         const modalCloseBtn = document.querySelector('.modal-close-btn');
 
-        // Fungsi untuk menampilkan pesan
         function showMessage(message, type = 'error') {
             messageBox.textContent = message;
             messageBox.classList.remove('hidden');
@@ -300,7 +300,6 @@
             }, 5000);
         }
 
-        // Fungsi untuk beralih tampilan
         function showQrGenerator() {
             qrGeneratorView.classList.remove('hidden');
             savedLinksView.classList.add('hidden');
@@ -325,7 +324,6 @@
                  return;
             }
             
-            // Mengatur listener real-time
             const linksCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/qrcodes`);
             const q = query(linksCollectionRef);
 
@@ -339,20 +337,17 @@
             });
         }
 
-        // Fungsi untuk membuat QR Code
         function generateQRCode() {
             const url = urlInput.value.trim();
             qrcodeContainer.classList.add('hidden');
 
             if (url === '') {
-                showMessage('Tolong masukkan tautan yang valid.');
+                showMessage('Tolong masukkan teks atau tautan yang valid.');
                 return;
             }
 
-            // Menghapus QR Code yang ada
             qrcodeDiv.innerHTML = '';
 
-            // Membuat instance QR Code
             try {
                 new qrcodejs(qrcodeDiv, {
                     text: url,
@@ -364,12 +359,11 @@
                 });
                 qrcodeContainer.classList.remove('hidden');
             } catch (error) {
-                showMessage('Gagal membuat QR Code. Periksa tautan Anda.');
+                showMessage('Gagal membuat QR Code. Periksa input Anda.');
                 console.error(error);
             }
         }
 
-        // Fungsi untuk mengunduh QR Code
         function downloadQRCode() {
             const canvas = qrcodeDiv.querySelector('canvas');
             if (!canvas) {
@@ -386,7 +380,6 @@
             document.body.removeChild(link);
         }
 
-        // Fungsi untuk menyimpan tautan ke database
         async function saveLink() {
             const url = urlInput.value.trim();
             if (!url) {
@@ -412,7 +405,6 @@
             }
         }
 
-        // Fungsi untuk merender daftar tautan
         function renderLinks(links) {
             linksList.innerHTML = '';
             if (links.length === 0) {
@@ -445,7 +437,6 @@
             });
         }
 
-        // Fungsi untuk menampilkan QR Code di modal
         function showQrCode(url) {
             modalQrCode.innerHTML = '';
             try {
@@ -464,12 +455,10 @@
             }
         }
 
-        // Fungsi untuk menutup modal
         modalCloseBtn.addEventListener('click', () => {
             qrModal.classList.add('hidden');
         });
 
-        // Fungsi untuk menghapus tautan
         async function deleteLink(docId) {
             if (!userId) {
                 showMessage('Otentikasi gagal. Tidak dapat menghapus.', 'error');
@@ -486,15 +475,11 @@
             }
         }
         
-        // ---
-        // Inisialisasi Firebase dan otentikasi
-        // Perbaikan untuk menangani kesalahan otentikasi
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
 
-            // Otentikasi pengguna saat halaman dimuat
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     userId = user.uid;
@@ -507,7 +492,6 @@
                             await signInAnonymously(auth);
                         }
                     } catch (error) {
-                        // Perubahan di sini: Tampilkan pesan kesalahan spesifik
                         console.error("Authentication failed:", error);
                         showMessage(`Gagal otentikasi: ${error.message}. Silakan coba muat ulang halaman.`, 'error');
                     }
@@ -518,22 +502,18 @@
             showMessage('Terjadi kesalahan saat memuat aplikasi. Silakan coba muat ulang halaman atau hubungi dukungan.', 'error');
         }
 
-        // Menambahkan event listener ke tombol navigasi
         qrGeneratorBtn.addEventListener('click', showQrGenerator);
         savedLinksBtn.addEventListener('click', showSavedLinks);
         
-        // Menambahkan event listener ke tombol fungsionalitas utama
         generateBtn.addEventListener('click', generateQRCode);
         downloadBtn.addEventListener('click', downloadQRCode);
         saveBtn.addEventListener('click', saveLink);
         
-        // Menambahkan event listener ke input untuk tombol Enter
         urlInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 generateQRCode();
             }
         });
-
     </script>
 </body>
 </html>
