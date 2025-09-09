@@ -488,7 +488,7 @@
         
         // ---
         // Inisialisasi Firebase dan otentikasi
-        // Perbaikan untuk menangani kesalahan "auth/invalid-api-key"
+        // Perbaikan untuk menangani kesalahan otentikasi
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
@@ -507,8 +507,9 @@
                             await signInAnonymously(auth);
                         }
                     } catch (error) {
+                        // Perubahan di sini: Tampilkan pesan kesalahan spesifik
                         console.error("Authentication failed:", error);
-                        showMessage('Gagal otentikasi. Silakan coba muat ulang halaman.', 'error');
+                        showMessage(`Gagal otentikasi: ${error.message}. Silakan coba muat ulang halaman.`, 'error');
                     }
                 }
             });
