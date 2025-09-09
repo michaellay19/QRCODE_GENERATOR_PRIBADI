@@ -273,6 +273,7 @@
             <span class="modal-close-btn">&times;</span>
             <h3 class="text-xl font-bold mb-4">QR Code</h3>
             <div id="modal-qrcode"></div>
+            <button id="modalDownloadBtn" class="download-btn mt-4">Unduh QR Code</button>
         </div>
     </div>
 
@@ -329,6 +330,7 @@
         const qrModal = document.getElementById('qrModal');
         const modalQrCode = document.getElementById('modal-qrcode');
         const qrModalCloseBtn = document.querySelector('#qrModal .modal-close-btn');
+        const modalDownloadBtn = document.getElementById('modalDownloadBtn');
 
         const authBtn = document.getElementById('authBtn');
         const authModal = document.getElementById('authModal');
@@ -526,10 +528,28 @@
                 console.error(error);
             }
         }
+        
+        function downloadModalQrCode() {
+            const canvas = modalQrCode.querySelector('canvas');
+            if (!canvas) {
+                showMessage('Tidak ada QR Code untuk diunduh.', 'error');
+                return;
+            }
+
+            const image = canvas.toDataURL("image/png");
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = `qrcode_${Date.now()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         qrModalCloseBtn.addEventListener('click', () => {
             qrModal.classList.add('hidden');
         });
+        
+        modalDownloadBtn.addEventListener('click', downloadModalQrCode);
 
         async function deleteLink(docId) {
             if (!userId) {
