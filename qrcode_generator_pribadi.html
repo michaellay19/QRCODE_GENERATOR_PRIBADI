@@ -261,10 +261,9 @@
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        let app, auth, db;
+        let userId = null;
+        let unsubscribeFromSnapshot = null;
 
         // DOM elements
         const qrGeneratorBtn = document.getElementById('qrGeneratorBtn');
@@ -284,9 +283,6 @@
         const qrModal = document.getElementById('qrModal');
         const modalQrCode = document.getElementById('modal-qrcode');
         const modalCloseBtn = document.querySelector('.modal-close-btn');
-
-        let userId = null;
-        let unsubscribeFromSnapshot = null;
 
         // Fungsi untuk menampilkan pesan
         function showMessage(message, type = 'error') {
@@ -489,25 +485,37 @@
                 showMessage('Gagal menghapus tautan. Silakan coba lagi.', 'error');
             }
         }
+        
+        // ---
+        // Inisialisasi Firebase dan otentikasi
+        // Perbaikan untuk menangani kesalahan "auth/invalid-api-key"
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
 
-        // Otentikasi pengguna saat halaman dimuat
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                userIdDisplay.textContent = `ID Pengguna: ${userId}`;
-            } else {
-                try {
-                    if (typeof __initial_auth_token !== 'undefined') {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
+            // Otentikasi pengguna saat halaman dimuat
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    userIdDisplay.textContent = `ID Pengguna: ${userId}`;
+                } else {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined') {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Authentication failed:", error);
+                        showMessage('Gagal otentikasi. Silakan coba muat ulang halaman.', 'error');
                     }
-                } catch (error) {
-                    console.error("Authentication failed:", error);
-                    showMessage('Gagal otentikasi. Silakan coba muat ulang halaman.', 'error');
                 }
-            }
-        });
+            });
+        } catch (error) {
+            console.error("Firebase initialization failed:", error);
+            showMessage('Terjadi kesalahan saat memuat aplikasi. Silakan coba muat ulang halaman atau hubungi dukungan.', 'error');
+        }
 
         // Menambahkan event listener ke tombol navigasi
         qrGeneratorBtn.addEventListener('click', showQrGenerator);
