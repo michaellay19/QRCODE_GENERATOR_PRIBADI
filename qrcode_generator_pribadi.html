@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Terpadu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0f4f8;
+            color: #1e293b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .container {
+            background: #ffffff;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+        }
+        .user-id-display {
+            position: absolute;
+            top: 1.5rem;
+            left: 1.5rem;
+            font-size: 0.75rem;
+            color: #6b7280;
+            word-break: break-all;
+            text-align: left;
+        }
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .nav-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            background-color: #e2e8f0;
+            color: #4b5563;
+        }
+        .nav-btn.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease-in-out;
+            outline: none;
+        }
+        input[type="text"]:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        button {
+            background-color: #3b82f6;
+            color: #ffffff;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        #qrcode-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            background-color: #f8fafc;
+            border-radius: 1rem;
+            min-height: 250px;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        #qrcode {
+            border: 4px solid #1e293b;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        .hidden {
+            display: none;
+        }
+        .message-box {
+            background-color: #fecaca;
+            color: #dc2626;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        .save-btn {
+            background-color: #10b981;
+        }
+        .save-btn:hover {
+            background-color: #059669;
+        }
+        #links-list {
+            list-style: none;
+            padding: 0;
+            text-align: left;
+        }
+        .link-item {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .link-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .link-url {
+            font-weight: 600;
+            color: #1e293b;
+            word-break: break-all;
+        }
+        .link-date {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .actions-btn-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .action-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        .show-qr-btn {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+        .show-qr-btn:hover {
+            background-color: #2563eb;
+        }
+        .delete-btn {
+            background-color: #ef4444;
+            color: #ffffff;
+        }
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            position: relative;
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #4b5563;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="container">
+        <!-- Menampilkan ID Pengguna -->
+        <div id="userIdDisplay" class="user-id-display"></div>
+        
+        <h1 class="text-3xl font-bold mb-6 text-gray-900">Aplikasi QR Code</h1>
+        <div class="nav-tabs">
+            <button id="qrGeneratorBtn" class="nav-btn active">Pembuat QR</button>
+            <button id="savedLinksBtn" class="nav-btn">Data Tersimpan</button>
+        </div>
+
+        <div id="qrGeneratorView">
+            <p class="text-gray-600 mb-8">Masukkan tautan di bawah ini untuk membuat kode QR.</p>
+            <div class="input-group">
+                <input type="text" id="urlInput" placeholder="Contoh: https://www.google.com" class="text-gray-800">
+                <button id="generateBtn" class="w-full">Buat QR Code</button>
+            </div>
+
+            <div id="qrcode-container" class="hidden">
+                <div id="qrcode"></div>
+                <button id="downloadBtn" class="w-full">Unduh QR Code</button>
+                <button id="saveBtn" class="w-full save-btn">Simpan Tautan</button>
+            </div>
+        </div>
+
+        <div id="savedLinksView" class="hidden">
+            <p class="text-gray-600 mb-8">Berikut adalah daftar tautan yang telah Anda simpan.</p>
+            <div id="loadingIndicator" class="text-center text-gray-500 hidden">Memuat data...</div>
+            <ul id="links-list"></ul>
+        </div>
+
+        <div id="messageBox" class="message-box hidden"></div>
+    </div>
+
+    <!-- Modal untuk menampilkan QR Code -->
+    <div id="qrModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="modal-close-btn">&times;</span>
+            <h3 class="text-xl font-bold mb-4">QR Code</h3>
+            <div id="modal-qrcode"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, query, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // QR Code Library
+        const qrcodejs = window.QRCode;
+
+        // Firebase configuration
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM elements
+        const qrGeneratorBtn = document.getElementById('qrGeneratorBtn');
+        const savedLinksBtn = document.getElementById('savedLinksBtn');
+        const qrGeneratorView = document.getElementById('qrGeneratorView');
+        const savedLinksView = document.getElementById('savedLinksView');
+        const urlInput = document.getElementById('urlInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const qrcodeContainer = document.getElementById('qrcode-container');
+        const qrcodeDiv = document.getElementById('qrcode');
+        const messageBox = document.getElementById('messageBox');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const linksList = document.getElementById('links-list');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const qrModal = document.getElementById('qrModal');
+        const modalQrCode = document.getElementById('modal-qrcode');
+        const modalCloseBtn = document.querySelector('.modal-close-btn');
+
+        let userId = null;
+        let unsubscribeFromSnapshot = null;
+
+        // Fungsi untuk menampilkan pesan
+        function showMessage(message, type = 'error') {
+            messageBox.textContent = message;
+            messageBox.classList.remove('hidden');
+            if (type === 'error') {
+                messageBox.classList.remove('bg-green-100', 'text-green-800');
+                messageBox.classList.add('bg-red-200', 'text-red-800');
+            } else {
+                messageBox.classList.remove('bg-red-200', 'text-red-800');
+                messageBox.classList.add('bg-green-100', 'text-green-800');
+            }
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Fungsi untuk beralih tampilan
+        function showQrGenerator() {
+            qrGeneratorView.classList.remove('hidden');
+            savedLinksView.classList.add('hidden');
+            qrGeneratorBtn.classList.add('active');
+            savedLinksBtn.classList.remove('active');
+            if (unsubscribeFromSnapshot) {
+                unsubscribeFromSnapshot();
+                unsubscribeFromSnapshot = null;
+            }
+        }
+
+        async function showSavedLinks() {
+            qrGeneratorView.classList.add('hidden');
+            savedLinksView.classList.remove('hidden');
+            qrGeneratorBtn.classList.remove('active');
+            savedLinksBtn.classList.add('active');
+            loadingIndicator.classList.remove('hidden');
+            
+            if (!userId) {
+                 loadingIndicator.classList.add('hidden');
+                 showMessage('Otentikasi gagal. Silakan coba muat ulang halaman.', 'error');
+                 return;
+            }
+            
+            // Mengatur listener real-time
+            const linksCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/qrcodes`);
+            const q = query(linksCollectionRef);
+
+            unsubscribeFromSnapshot = onSnapshot(q, (snapshot) => {
+                const links = [];
+                snapshot.forEach(doc => {
+                    links.push({ id: doc.id, ...doc.data() });
+                });
+                loadingIndicator.classList.add('hidden');
+                renderLinks(links);
+            });
+        }
+
+        // Fungsi untuk membuat QR Code
+        function generateQRCode() {
+            const url = urlInput.value.trim();
+            qrcodeContainer.classList.add('hidden');
+
+            if (url === '') {
+                showMessage('Tolong masukkan tautan yang valid.');
+                return;
+            }
+
+            // Menghapus QR Code yang ada
+            qrcodeDiv.innerHTML = '';
+
+            // Membuat instance QR Code
+            try {
+                new qrcodejs(qrcodeDiv, {
+                    text: url,
+                    width: 200,
+                    height: 200,
+                    colorDark : "#1e293b",
+                    colorLight : "#f8fafc",
+                    correctLevel : qrcodejs.CorrectLevel.H
+                });
+                qrcodeContainer.classList.remove('hidden');
+            } catch (error) {
+                showMessage('Gagal membuat QR Code. Periksa tautan Anda.');
+                console.error(error);
+            }
+        }
+
+        // Fungsi untuk mengunduh QR Code
+        function downloadQRCode() {
+            const canvas = qrcodeDiv.querySelector('canvas');
+            if (!canvas) {
+                showMessage('Tidak ada QR Code untuk diunduh.', 'error');
+                return;
+            }
+
+            const image = canvas.toDataURL("image/png");
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = `qrcode_${Date.now()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Fungsi untuk menyimpan tautan ke database
+        async function saveLink() {
+            const url = urlInput.value.trim();
+            if (!url) {
+                showMessage('Tautan tidak boleh kosong!', 'error');
+                return;
+            }
+            if (!userId) {
+                showMessage('Otentikasi gagal. Silakan coba muat ulang halaman.', 'error');
+                return;
+            }
+
+            const linksCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/qrcodes`);
+            
+            try {
+                await addDoc(linksCollectionRef, {
+                    url: url,
+                    createdAt: serverTimestamp()
+                });
+                showMessage('Tautan berhasil disimpan!', 'success');
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                showMessage('Gagal menyimpan tautan. Silakan coba lagi.', 'error');
+            }
+        }
+
+        // Fungsi untuk merender daftar tautan
+        function renderLinks(links) {
+            linksList.innerHTML = '';
+            if (links.length === 0) {
+                linksList.innerHTML = '<p class="text-center text-gray-500">Belum ada tautan yang disimpan.</p>';
+                return;
+            }
+
+            links.forEach(link => {
+                const li = document.createElement('li');
+                li.className = 'link-item';
+                li.setAttribute('data-doc-id', link.id);
+                
+                const date = link.createdAt ? new Date(link.createdAt.seconds * 1000).toLocaleString('id-ID') : 'N/A';
+                
+                li.innerHTML = `
+                    <div class="link-item-header">
+                        <span class="link-url">${link.url}</span>
+                    </div>
+                    <span class="link-date">Disimpan: ${date}</span>
+                    <div class="actions-btn-group">
+                        <button class="action-btn show-qr-btn">Tampilkan QR</button>
+                        <button class="action-btn delete-btn">Hapus</button>
+                    </div>
+                `;
+                
+                li.querySelector('.show-qr-btn').addEventListener('click', () => showQrCode(link.url));
+                li.querySelector('.delete-btn').addEventListener('click', () => deleteLink(link.id));
+                
+                linksList.appendChild(li);
+            });
+        }
+
+        // Fungsi untuk menampilkan QR Code di modal
+        function showQrCode(url) {
+            modalQrCode.innerHTML = '';
+            try {
+                new qrcodejs(modalQrCode, {
+                    text: url,
+                    width: 250,
+                    height: 250,
+                    colorDark : "#1e293b",
+                    colorLight : "#f8fafc",
+                    correctLevel : qrcodejs.CorrectLevel.H
+                });
+                qrModal.classList.remove('hidden');
+            } catch (error) {
+                showMessage('Gagal menampilkan QR Code.', 'error');
+                console.error(error);
+            }
+        }
+
+        // Fungsi untuk menutup modal
+        modalCloseBtn.addEventListener('click', () => {
+            qrModal.classList.add('hidden');
+        });
+
+        // Fungsi untuk menghapus tautan
+        async function deleteLink(docId) {
+            if (!userId) {
+                showMessage('Otentikasi gagal. Tidak dapat menghapus.', 'error');
+                return;
+            }
+
+            try {
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/qrcodes/${docId}`);
+                await deleteDoc(docRef);
+                showMessage('Tautan berhasil dihapus!', 'success');
+            } catch (error) {
+                console.error("Error removing document: ", error);
+                showMessage('Gagal menghapus tautan. Silakan coba lagi.', 'error');
+            }
+        }
+
+        // Otentikasi pengguna saat halaman dimuat
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                userIdDisplay.textContent = `ID Pengguna: ${userId}`;
+            } else {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Authentication failed:", error);
+                    showMessage('Gagal otentikasi. Silakan coba muat ulang halaman.', 'error');
+                }
+            }
+        });
+
+        // Menambahkan event listener ke tombol navigasi
+        qrGeneratorBtn.addEventListener('click', showQrGenerator);
+        savedLinksBtn.addEventListener('click', showSavedLinks);
+        
+        // Menambahkan event listener ke tombol fungsionalitas utama
+        generateBtn.addEventListener('click', generateQRCode);
+        downloadBtn.addEventListener('click', downloadQRCode);
+        saveBtn.addEventListener('click', saveLink);
+        
+        // Menambahkan event listener ke input untuk tombol Enter
+        urlInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                generateQRCode();
+            }
+        });
+
+    </script>
+</body>
+</html>
